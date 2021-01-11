@@ -38,17 +38,17 @@ Elegoo_TFTLCD tft(LCD_CS, LCD_CD, LCD_WR, LCD_RD, LCD_RESET);
 
 
 //-------Pins-----//
-int Relay = 22;                 //Solenoid valve open/close
+int Relay = 35;                 //Solenoid valve open/close
 int start_stop = 24;             //Start/Stop button
 int rst_sp = 26;                 // Reset Set Point Button
 int rst_cnt = 28;               // Reset counter button
 int unit = 30;                  // Change Unit Button
 const int sensor_pulse = 32;    // Sensor Pulse In
 //----Analog as Input-----//
-int add_one = 66;               // +1 Button
-int add_ten = 67;               // +10 Button
-int add_cien = 68;              // +100 Button
-int add_mil = 69;               // +1000 Buton
+int add_one = A12;               // +1 Button
+int add_ten = A13;               // +10 Button
+int add_cien = A14;              // +100 Button
+int add_mil = A15;               // +1000 Buton
 
 //-----Variables for debouncing-----//
 boolean currentstart_stop = LOW;
@@ -192,26 +192,16 @@ void loop() {
 
     //------ Lt/ml unit toggle function----//
     if (currentunit == HIGH && lastunit == LOW) {
-      // lcd.setCursor(4, 1);        //Clear lcd(CNT area) between unit change,keeping last count
-      // lcd.print("          ");
-
+              
       tft.setCursor(10, 220);
       tft.setTextColor(0xFFFF, 0x0000);
       tft.setTextSize(5);
-      tft.println("       ");
-
-
-
-      // lcd.setCursor(3,0);        //Clear lcd (SP area) between unit change, keeping last SP
-      // lcd.print("           ");
+      tft.println("       ");//Clear tft(CNT area) between unit change,keeping last count
 
       tft.setCursor(20, 80);
       tft.setTextColor(0xFFFF, 0x0000);
       tft.setTextSize(5);
-      tft.println("       ");
-
-
-
+      tft.println("       ");//Clear lcd (SP area) between unit change, keeping last SP
 
 
       if (unitState == HIGH) {        //Toggle the state of the unit (L/ml)
@@ -227,19 +217,11 @@ void loop() {
   }
   //------Print unit state-----//
   if (unitState == HIGH) {    //Unit state HIGH = L
-    //lcd.setCursor(14,0);
-    //lcd.print("Lt");
-
-
+    
     tft.setCursor(200, 90);
     tft.setTextColor(0xF81F, 0x0000);
     tft.setTextSize(3);
     tft.println("Lt");
-
-
-    //lcd.setCursor(14, 1);
-    //lcd.print("Lt");
-
 
     tft.setCursor(200, 230);
     tft.setTextColor(0xF81F, 0x0000);
@@ -248,19 +230,10 @@ void loop() {
 
   }
   else {                      //Unit state LOW = ml
-    // lcd.setCursor(14,0);
-    //  lcd.print("Ml");
-
-
     tft.setCursor(200, 90);
     tft.setTextColor(0x07E0, 0x0000);
     tft.setTextSize(3);
     tft.println("Ml");
-
-
-    // lcd.setCursor(14,1);
-    // lcd.print("Ml");
-
 
     tft.setCursor(200, 230);
     tft.setTextColor(0x07E0, 0x0000);
@@ -301,26 +274,22 @@ void loop() {
 
       //-------Reset Buttons----//
       if (currentrst_sp == HIGH && lastrst_sp == LOW) { //Reset Set Point
-        // lcd.setCursor(3, 0);         // Clear SP area
-        //lcd.print("          ");
 
         tft.setCursor(10, 80);
         tft.setTextColor(0xFFFF, 0x0000);
         tft.setTextSize(5);
-        tft.println("       ");
+        tft.println("       ");// Clear SP area
 
 
         set_point_1 = 0;
       }
       lastrst_sp = currentrst_sp;
       if (currentrst_cnt == HIGH && lastrst_cnt == LOW) { //Reset Counter
-        // lcd.setCursor(4, 1);         // Clear CNT area
-        // lcd.print("         ");
 
         tft.setCursor(10, 220);
         tft.setTextColor(0xFFFF, 0x0000);
         tft.setTextSize(5);
-        tft.println("       ");
+        tft.println("       ");// Clear CNT area
 
 
 
@@ -344,47 +313,33 @@ void loop() {
       counter_1 = 0;                   //Counter  reset
     }
 
-    // lcd.setCursor(3, 0);           //Show set point
-    //lcd.print(set_point_1);
 
     tft.setCursor(10, 80);
     tft.setTextColor(0x07E0, 0x0000);
     tft.setTextSize(5);
-    tft.println(set_point_1);
+    tft.println(set_point_1);//Show set point
 
-
-    // lcd.setCursor(4, 1);           // Show counter
-    //lcd.print(TotalCount_1);
 
     tft.setCursor(10, 220);
     tft.setTextColor(0x07E0, 0x0000);
     tft.setTextSize(5);
-    tft.println(TotalCount_1);
+    tft.println(TotalCount_1);// Show counter
 
 
-
-
-    //--Stop Counter.You can¥t start if set point is lower or equal to counter--//
+    //--Stop Counter.You can't start if set point is lower or equal to counter--//
     if (RelayState == HIGH) {
       if (set_point_1 <= TotalCount_1) {
         RelayState = LOW;
         digitalWrite(Relay, LOW);
         //***********************************************Autoreset
-        // lcd.setCursor(4, 1);         // Clear CNT area
-        // lcd.print(set_point_1);
 
         tft.setCursor(10, 220);
         tft.setTextColor(0x07E0, 0x0000);
         tft.setTextSize(5);
-        tft.println(set_point_1);
+        tft.println(set_point_1);// Clear CNT area
 
         // counter_1= 0;
         // TotalCount_1= 0;
-
-
-
-
-
 
       }
     }
@@ -425,32 +380,23 @@ void loop() {
 
       //-------Reset Buttons----//
       if (currentrst_sp == HIGH && lastrst_sp == LOW) { //Reset Set Point
-        // lcd.setCursor(3, 0);         // Clear SP area
-        // lcd.print("          ");
+    
 
         tft.setCursor(10, 80);
         tft.setTextColor(0xFFFF, 0x0000);
-        tft.setTextSize(5);/////////////
-        tft.println("       ");
-
-
-
-
+        tft.setTextSize(5);
+        tft.println("       ");// Clear SP area
 
         set_point_2 = 0;
       }
       lastrst_sp = currentrst_sp;
       if (currentrst_cnt == HIGH && lastrst_cnt == LOW) { //Reset Counter
-        // lcd.setCursor(4, 1);         // Clear CNT area
-        // lcd.print("         ");
-
+      
 
         tft.setCursor(10, 220);
         tft.setTextColor(0xFFFF, 0x0000);
         tft.setTextSize(5);
-        tft.println("       ");
-
-
+        tft.println("       ");// Clear CNT area
 
         counter_2 = 0;
         TotalCount_2 = 0;
@@ -472,22 +418,16 @@ void loop() {
       counter_2 = 0;                     //Counter  reset
     }
 
-    // lcd.setCursor(3, 0);           //Show set point
-    // lcd.print(set_point_2);
-
     tft.setCursor(10, 80);
     tft.setTextColor(0x07E0, 0x0000);
     tft.setTextSize(5);
-    tft.println(set_point_2);
+    tft.println(set_point_2);//Show set point
 
-
-    // lcd.setCursor(4, 1);           // Show counter
-    // lcd.print(TotalCount_2);
 
     tft.setCursor(10, 220);
     tft.setTextColor(0x07E0, 0x0000);
     tft.setTextSize(5);
-    tft.println(TotalCount_2);
+    tft.println(TotalCount_2);// Show counter
 
 
     //--Stop Counter.You can¥t start if set point is lower or equal to counter--//
@@ -496,18 +436,12 @@ void loop() {
         RelayState = LOW;
         digitalWrite(Relay, LOW);
         //*****************************Autoreset
-        // lcd.setCursor(4, 1);         // Clear CNT area
-        // lcd.print("         ");
 
 
         tft.setCursor(10, 220);
         tft.setTextColor(0xFFFF, 0x0000);
         tft.setTextSize(5);
-        tft.println("       ");
-
-
-
-
+        tft.println("       ");// Clear CNT area
 
         counter_2 = 0;
         TotalCount_2 = 0;
