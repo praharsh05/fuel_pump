@@ -5,9 +5,10 @@ Adaptation Courtesy: www.hobbytronics.co.uk
 */
 volatile int flow_frequency; // Measures flow sensor pulses
 unsigned int l_hour; // Calculated litres/hour
-unsigned char flowsensor = 2; // Sensor Input
+unsigned char flowsensor = 32; // Sensor Input
 unsigned long currentTime;
 unsigned long cloopTime;
+int sol=35;
 void flow () // Interrupt function
 {
    flow_frequency++;
@@ -15,6 +16,8 @@ void flow () // Interrupt function
 void setup()
 {
    pinMode(flowsensor, INPUT);
+   pinMode(sol,OUTPUT);
+   digitalWrite(sol,HIGH);
    digitalWrite(flowsensor, HIGH); // Optional Internal Pull-Up
    Serial.begin(9600);
    attachInterrupt(0, flow, RISING); // Setup Interrupt
@@ -30,9 +33,10 @@ void loop ()
    {
       cloopTime = currentTime; // Updates cloopTime
 //       Pulse frequency (Hz) = 7.5Q, Q is flow rate in L/min.
-      l_hour = (flow_frequency * 60 / 7.5); // (Pulse frequency x 60 min) / 7.5Q = flowrate in L/hour
+Serial.println(flow_frequency);
+      l_hour = (flow_frequency / 7.5); // (Pulse frequency x 60 min) / 7.5Q = flowrate in L/hour
       flow_frequency = 0; // Reset Counter
       Serial.print(l_hour, DEC); // Print litres/hour
-      Serial.println(" L/hour");
+      Serial.println(" L/min");
    }
 }
