@@ -1,18 +1,20 @@
 #include <Elegoo_GFX.h>    // Core graphics library
 #include <Elegoo_TFTLCD.h> // Hardware-specific library
 #include <TouchScreen.h>
+#include <SPI.h>
+#include <MFRC522.h>
 
 #if defined(__SAM3X8E__)
 #undef __FlashStringHelper::F(string_literal)
 #define F(string_literal) string_literal
 #endif
 
-
 #define YP A3  // must be an analog pin, use "An" notation!
 #define XM A2  // must be an analog pin, use "An" notation!
 #define YM 9   // can be a digital pin
 #define XP 8   // can be a digital pin
-
+#define SS_PIN 53
+#define RST_PIN 49
 
 boolean buttonEnabled = true;
 
@@ -34,7 +36,7 @@ boolean buttonEnabled = true;
 #define WHITE   0xFFFF
 
 Elegoo_TFTLCD tft(LCD_CS, LCD_CD, LCD_WR, LCD_RD, LCD_RESET);
-
+MFRC522 mfrc522(SS_PIN, RST_PIN);   // Create MFRC522 instance.
 
 
 //-------Pins-----//
@@ -75,8 +77,8 @@ boolean unitState = LOW;                  //storage for the current state of the
 boolean RelayState = LOW;                //storage for the current state of the Relay (off/on)
 
 //-------You have to put your pulses x liters here-----//
-float cal_1 = 2.5;                      //Calibrate ml x pulse (cal_1 = 1000/400)  // Default 2.5
-int cal_2 = 400;                        //Calibrate pulses x liters   // Default 400
+float cal_1 = 10.31;                      //Calibrate ml x pulse (cal_1 = 1000/400)  // Default 2.5
+int cal_2 = 97;                        //Calibrate pulses x liters   // Default 400
 //-----------------------------------------------------//
 
 float counter_1 = 0.0;
@@ -122,30 +124,53 @@ void setup(void) { //body
 
   tft.begin(identifier);
   tft.setRotation(2);
-
   tft.fillScreen(BLACK);
+
   pinMode(Relay, OUTPUT);     //Pin 13
+  pinMode(sensor_pulse, INPUT); //flow sensor input
   pinMode(add_one, INPUT);    //A12 as Input
   pinMode(add_ten, INPUT);    //A13 as Input
   pinMode(add_cien, INPUT);   //A14 as Input
   pinMode(add_mil, INPUT);    //A15 as Input
 
-
   tft.fillRect(10, 10, 220, 50, RED);
   tft.drawRect(10, 10, 220, 50, WHITE);
-  tft.setCursor(20, 20);
+  tft.setCursor(15, 20);
   tft.setTextColor(WHITE);
   tft.setTextSize(4);
-  tft.print("SetValue");
+  tft.print("SET VALUE");
 
-
-  tft.fillRect(10, 150, 220, 50, BLUE);
-  tft.drawRect(10, 150, 220, 50, WHITE);
-  tft.setCursor(20, 160);
+  tft.fillRect(10, 70, 220, 50, GREEN);
+  tft.drawRect(10, 70, 220, 50, WHITE);
+  tft.setCursor(20, 80);
   tft.setTextColor(WHITE);
   tft.setTextSize(4);
   tft.print("COUNTER");
 
+  tft.fillRect(10, 130, 220, 50, MAGENTA);
+  tft.drawRect(10, 130, 220, 50, WHITE);
+  tft.setCursor(20, 140);
+  tft.setTextColor(WHITE);
+  tft.setTextSize(4);
+  tft.print("QUOTA");
+
+  tft.fillRect(10, 190, 220, 50, BLUE);
+  tft.drawRect(10, 190, 220, 50, WHITE);
+  tft.setCursor(15, 200);
+  tft.setTextColor(WHITE);
+  tft.setTextSize(4);
+  tft.print("REM QUOTA");
+
+  tft.fillRect(10, 250, 220, 50, RED);
+  tft.drawRect(10, 250, 220, 50, WHITE);
+  tft.setCursor(30, 265);
+  tft.setTextColor(WHITE);
+  tft.setTextSize(3);
+  tft.print("AUTHENTICATE");
+
+  Serial.begin(9600);   // Initiate a serial communication
+  SPI.begin();      // Initiate  SPI bus
+  mfrc522.PCD_Init();   // Initiate MFRC522
 }
 //----Debouncing function for all buttons----//
 boolean debounce(boolean last, int pin)
@@ -184,7 +209,6 @@ void loop() {
       RelayState = HIGH;
     }
   }
-
   laststart_stop = currentstart_stop;
 
   //-------Unit toggle function----//
@@ -192,17 +216,15 @@ void loop() {
 
     //------ Lt/ml unit toggle function----//
     if (currentunit == HIGH && lastunit == LOW) {
-              
-      tft.setCursor(10, 220);
-      tft.setTextColor(0xFFFF, 0x0000);
-      tft.setTextSize(5);
+      tft.setCursor(20, 80);
+      tft.setTextColor(GREEN);//change to white
+      tft.setTextSize(4);
       tft.println("       ");//Clear tft(CNT area) between unit change,keeping last count
 
-      tft.setCursor(20, 80);
-      tft.setTextColor(0xFFFF, 0x0000);
-      tft.setTextSize(5);
+      tft.setCursor(15, 20);
+      tft.setTextColor(RED);
+      tft.setTextSize(4);
       tft.println("       ");//Clear lcd (SP area) between unit change, keeping last SP
-
 
       if (unitState == HIGH) {        //Toggle the state of the unit (L/ml)
         digitalWrite(unit, LOW);
@@ -217,30 +239,48 @@ void loop() {
   }
   //------Print unit state-----//
   if (unitState == HIGH) {    //Unit state HIGH = L
-    
-    tft.setCursor(200, 90);
-    tft.setTextColor(0xF81F, 0x0000);
+
+    tft.setCursor(195, 20);
+    tft.setTextColor(WHITE);
     tft.setTextSize(3);
     tft.println("Lt");
 
-    tft.setCursor(200, 230);
-    tft.setTextColor(0xF81F, 0x0000);
+    tft.setCursor(195, 80);
+    tft.setTextColor(WHITE);
+    tft.setTextSize(3);
+    tft.println("Lt");
+
+    tft.setCursor(195, 140);
+    tft.setTextColor(WHITE);
+    tft.setTextSize(3);
+    tft.println("Lt");
+
+    tft.setCursor(195, 200);
+    tft.setTextColor(WHITE);
     tft.setTextSize(3);
     tft.println("Lt");
 
   }
   else {                      //Unit state LOW = ml
-    tft.setCursor(200, 90);
-    tft.setTextColor(0x07E0, 0x0000);
+    tft.setCursor(195, 20);
+    tft.setTextColor(WHITE);
     tft.setTextSize(3);
     tft.println("Ml");
 
-    tft.setCursor(200, 230);
-    tft.setTextColor(0x07E0, 0x0000);
+    tft.setCursor(195, 80);
+    tft.setTextColor(WHITE);
     tft.setTextSize(3);
     tft.println("Ml");
 
+    tft.setCursor(195, 140);
+    tft.setTextColor(WHITE);
+    tft.setTextSize(3);
+    tft.println("Ml");
 
+    tft.setCursor(195, 200);
+    tft.setTextColor(WHITE);
+    tft.setTextSize(3);
+    tft.println("Ml");
 
   }//End Print unit state
 
@@ -274,76 +314,133 @@ void loop() {
 
       //-------Reset Buttons----//
       if (currentrst_sp == HIGH && lastrst_sp == LOW) { //Reset Set Point
-
-        tft.setCursor(10, 80);
-        tft.setTextColor(0xFFFF, 0x0000);
-        tft.setTextSize(5);
+        tft.setCursor(15, 20);
+        tft.setTextColor(RED);
+        tft.setTextSize(4);
         tft.println("       ");// Clear SP area
-
-
         set_point_1 = 0;
       }
       lastrst_sp = currentrst_sp;
       if (currentrst_cnt == HIGH && lastrst_cnt == LOW) { //Reset Counter
-
-        tft.setCursor(10, 220);
-        tft.setTextColor(0xFFFF, 0x0000);
-        tft.setTextSize(5);
+        tft.setCursor(20, 80);
+        tft.setTextColor(GREEN);
+        tft.setTextSize(4);
         tft.println("       ");// Clear CNT area
-
-
-
         counter_1 = 0;
         TotalCount_1 = 0;
       }
       lastrst_cnt = currentrst_cnt;
     }//-----End Settings-----//
 
-    //----Start Counter------//
-    if (RelayState == HIGH) {  // Only counts while relay is HIGH
-      if (lastsensor_pulse == LOW && currentsensor_pulse == HIGH) {
-        counter_1 = counter_1 + cal_1;
-      }
-    }
-    lastsensor_pulse = currentsensor_pulse;
 
-    //-------Counter function-----//
-    if (counter_1 >= 10) {
-      TotalCount_1 = TotalCount_1 + 10;
-      counter_1 = 0;                   //Counter  reset
-    }
-
-
-    tft.setCursor(10, 80);
-    tft.setTextColor(0x07E0, 0x0000);
-    tft.setTextSize(5);
+    tft.setCursor(15, 20);
+    tft.setTextColor(RED);
+    tft.setTextSize(4);
+    tft.println("         ");// Clear set point Area
+    tft.setCursor(15, 20);
+    tft.setTextColor(WHITE);
+    tft.setTextSize(4);
     tft.println(set_point_1);//Show set point
 
+    // Look for new cards
+    if ( ! mfrc522.PICC_IsNewCardPresent())
+    {
+      return;
+    }
+    // Select one of the cards
+    if ( ! mfrc522.PICC_ReadCardSerial())
+    {
+      return;
+    }
+    //Show UID on serial monitor
+    Serial.print("UID tag :");
+    String content = "";
+    byte letter;
+    for (byte i = 0; i < mfrc522.uid.size; i++)
+    {
+      //      Serial.print(mfrc522.uid.uidByte[i] < 0x10 ? " 0" : " ");
+      //      Serial.print(mfrc522.uid.uidByte[i], HEX);
+      content.concat(String(mfrc522.uid.uidByte[i] < 0x10 ? " 0" : " "));
+      content.concat(String(mfrc522.uid.uidByte[i], HEX));
+    }
+    //    Serial.println();
+    //    Serial.print("Message : ");
+    content.toUpperCase();
+    if (content.substring(1) == "C9 BD A0 C1") //change here the UID of the card/cards that you want to give access
+    {
+      tft.setCursor(30, 265);
+      tft.setTextColor(RED);
+      tft.setTextSize(3);
+      tft.println("          ");// Clear Authenticate Area
+      tft.fillRect(10, 250, 220, 50, GREEN);
+      tft.drawRect(10, 250, 220, 50, WHITE);
+      tft.setCursor(30, 265);
+      tft.setTextColor(WHITE);
+      tft.setTextSize(3);
+      tft.print("RJ14AA0000");
+      //      Serial.println("Authorized access");
+      //      Serial.println();
+      delay(3000);
+      //----Start Counter------//
+      if (RelayState == HIGH) {  // Only counts while relay is HIGH
 
-    tft.setCursor(10, 220);
-    tft.setTextColor(0x07E0, 0x0000);
-    tft.setTextSize(5);
-    tft.println(TotalCount_1);// Show counter
+        if (lastsensor_pulse == LOW && currentsensor_pulse == HIGH) {
+          counter_1 = counter_1 + cal_1;
+        }
+      }
+      lastsensor_pulse = currentsensor_pulse;
 
+      //-------Counter function-----//
+      if (counter_1 >= 10) {
+        TotalCount_1 = TotalCount_1 + 10;
+        counter_1 = 0;                   //Counter  reset
+      }
 
-    //--Stop Counter.You can't start if set point is lower or equal to counter--//
-    if (RelayState == HIGH) {
-      if (set_point_1 <= TotalCount_1) {
-        RelayState = LOW;
-        digitalWrite(Relay, LOW);
-        //***********************************************Autoreset
+      tft.setCursor(20, 80);
+      tft.setTextColor(GREEN);
+      tft.setTextSize(4);
+      tft.println("       ");// Clear counter Area
+      tft.setCursor(20, 80);
+      tft.setTextColor(WHITE);
+      tft.setTextSize(4);
+      tft.println(TotalCount_1);// Show counter
 
-        tft.setCursor(10, 220);
-        tft.setTextColor(0x07E0, 0x0000);
-        tft.setTextSize(5);
-        tft.println(set_point_1);// Clear CNT area
-
-        // counter_1= 0;
-        // TotalCount_1= 0;
-
+      //--Stop Counter.You can't start if set point is lower or equal to counter--//
+      if (RelayState == HIGH) {
+        if (set_point_1 <= TotalCount_1) {
+          RelayState = LOW;
+          digitalWrite(Relay, LOW);
+          //***********************************************Autoreset
+          tft.setCursor(20, 80);
+          tft.setTextColor(WHITE);
+          tft.setTextSize(4);
+          tft.println(set_point_1);// Clear CNT area
+          counter_1 = 0;
+          TotalCount_1 = 0;
+        }
       }
     }
+    else {
+      tft.fillRect(10, 250, 220, 50, RED);
+      tft.drawRect(10, 250, 220, 50, WHITE);
+      tft.setCursor(30, 265);
+      tft.setTextColor(WHITE);
+      tft.setTextSize(3);
+      tft.print("RJ14AB0001");
+      delay(3000);
+      tft.setCursor(30, 265);
+      tft.setTextColor(RED);
+      tft.setTextSize(4);
+      tft.println("          ");
+      tft.setCursor(30, 265);
+      tft.setTextColor(BLACK);
+      tft.setTextSize(3);
+      tft.print("DENIED");
+      //      Serial.println(" Access denied");
+      delay(3000);
+    }
   }//End unit state LOW (ml)
+
 
   //--------------------------//
   //------------Lt Counter-----//
@@ -380,77 +477,133 @@ void loop() {
 
       //-------Reset Buttons----//
       if (currentrst_sp == HIGH && lastrst_sp == LOW) { //Reset Set Point
-    
-
-        tft.setCursor(10, 80);
-        tft.setTextColor(0xFFFF, 0x0000);
-        tft.setTextSize(5);
+        tft.setCursor(15, 20);
+        tft.setTextColor(RED);
+        tft.setTextSize(4);
         tft.println("       ");// Clear SP area
-
         set_point_2 = 0;
       }
       lastrst_sp = currentrst_sp;
       if (currentrst_cnt == HIGH && lastrst_cnt == LOW) { //Reset Counter
-      
-
-        tft.setCursor(10, 220);
-        tft.setTextColor(0xFFFF, 0x0000);
-        tft.setTextSize(5);
+        tft.setCursor(20, 80);
+        tft.setTextColor(GREEN);
+        tft.setTextSize(4);
         tft.println("       ");// Clear CNT area
-
         counter_2 = 0;
         TotalCount_2 = 0;
       }
       lastrst_cnt = currentrst_cnt;
     }//-----End Settings-----//
 
-    //----Start Counter------//
-    if (RelayState == HIGH) {  // Only counts while relay is HIGH
-      if (lastsensor_pulse == LOW && currentsensor_pulse == HIGH) {
-        counter_2 = counter_2 + 1;
+
+    tft.setCursor(15, 20);
+    tft.setTextColor(RED);
+    tft.setTextSize(4);
+    tft.println("         ");// Clear set point Area
+    tft.setCursor(15, 20);
+    tft.setTextColor(RED);
+    tft.setTextSize(4);
+    tft.println(set_point_1);//Show set point
+
+
+    // Look for new cards
+    if ( ! mfrc522.PICC_IsNewCardPresent())
+    {
+      return;
+    }
+    // Select one of the cards
+    if ( ! mfrc522.PICC_ReadCardSerial())
+    {
+      return;
+    }
+    //Show UID on serial monitor
+    Serial.print("UID tag :");
+    String content = "";
+    byte letter;
+    for (byte i = 0; i < mfrc522.uid.size; i++)
+    {
+      Serial.print(mfrc522.uid.uidByte[i] < 0x10 ? " 0" : " ");
+      Serial.print(mfrc522.uid.uidByte[i], HEX);
+      content.concat(String(mfrc522.uid.uidByte[i] < 0x10 ? " 0" : " "));
+      content.concat(String(mfrc522.uid.uidByte[i], HEX));
+    }
+    Serial.println();
+    Serial.print("Message : ");
+    content.toUpperCase();
+    if (content.substring(1) == "C9 BD A0 C1") //change here the UID of the card/cards that you want to give access
+    {
+      tft.setCursor(30, 265);
+      tft.setTextColor(RED);
+      tft.setTextSize(3);
+      tft.println("          ");// Clear Authenticate Area
+      tft.fillRect(10, 250, 220, 50, GREEN);
+      tft.drawRect(10, 250, 220, 50, WHITE);
+      tft.setCursor(30, 265);
+      tft.setTextColor(WHITE);
+      tft.setTextSize(3);
+      tft.print("RJ14AA0000");
+      //      Serial.println("Authorized access");
+      //      Serial.println();
+      delay(3000);
+      //----Start Counter------//
+      if (RelayState == HIGH) {  // Only counts while relay is HIGH
+        if (lastsensor_pulse == LOW && currentsensor_pulse == HIGH) {
+          counter_2 = counter_2 + 1;
+        }
+      }
+      lastsensor_pulse = currentsensor_pulse;
+
+      //-------Counter function-----//
+      if (counter_2 == cal_2) {
+        TotalCount_2 = TotalCount_2 + 1;
+        counter_2 = 0;                     //Counter  reset
+      }
+
+      tft.setCursor(20, 80);
+      tft.setTextColor(GREEN);
+      tft.setTextSize(4);
+      tft.println("       ");// Clear counter Area
+      tft.setCursor(20, 80);
+      tft.setTextColor(GREEN);
+      tft.setTextSize(4);
+      tft.println(TotalCount_1);// Show counter
+
+
+      //--Stop Counter.You can¥t start if set point is lower or equal to counter--//
+      if (RelayState == HIGH) {
+        if (set_point_2 <= TotalCount_2) {
+          RelayState = LOW;
+          digitalWrite(Relay, LOW);
+          //*****************************Autoreset
+
+          tft.setCursor(20, 80);
+          tft.setTextColor(WHITE);
+          tft.setTextSize(4);
+          tft.println("       ");// Clear CNT area
+
+          counter_2 = 0;
+          TotalCount_2 = 0;
+        }
       }
     }
-    lastsensor_pulse = currentsensor_pulse;
-
-    //-------Counter function-----//
-    if (counter_2 == cal_2) {
-      TotalCount_2 = TotalCount_2 + 1;
-      counter_2 = 0;                     //Counter  reset
+    else {
+      tft.fillRect(10, 250, 220, 50, RED);
+      tft.drawRect(10, 250, 220, 50, WHITE);
+      tft.setCursor(30, 265);
+      tft.setTextColor(WHITE);
+      tft.setTextSize(3);
+      tft.print("RJ14AB0001");
+      delay(3000);
+      tft.setCursor(30, 265);
+      tft.setTextColor(RED);
+      tft.setTextSize(4);
+      tft.println("          ");
+      tft.setCursor(30, 265);
+      tft.setTextColor(BLACK);
+      tft.setTextSize(3);
+      tft.print("DENIED");
+      //      Serial.println(" Access denied");
+      delay(3000);
     }
-
-    tft.setCursor(10, 80);
-    tft.setTextColor(0x07E0, 0x0000);
-    tft.setTextSize(5);
-    tft.println(set_point_2);//Show set point
-
-
-    tft.setCursor(10, 220);
-    tft.setTextColor(0x07E0, 0x0000);
-    tft.setTextSize(5);
-    tft.println(TotalCount_2);// Show counter
-
-
-    //--Stop Counter.You can¥t start if set point is lower or equal to counter--//
-    if (RelayState == HIGH) {
-      if (set_point_2 <= TotalCount_2) {
-        RelayState = LOW;
-        digitalWrite(Relay, LOW);
-        //*****************************Autoreset
-
-
-        tft.setCursor(10, 220);
-        tft.setTextColor(0xFFFF, 0x0000);
-        tft.setTextSize(5);
-        tft.println("       ");// Clear CNT area
-
-        counter_2 = 0;
-        TotalCount_2 = 0;
-      }
-    }
-
-
   }//End unit state HIGH (L)
-
-
-
 }//End Void Loop
