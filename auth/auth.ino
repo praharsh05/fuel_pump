@@ -1,8 +1,7 @@
 #include <SPI.h>
 #include <MFRC522.h>
- 
-#define SS_PIN 10
-#define RST_PIN 9
+#define SS_PIN 53
+#define RST_PIN 49
 MFRC522 mfrc522(SS_PIN, RST_PIN);   // Create MFRC522 instance.
  
 void setup() 
@@ -44,11 +43,11 @@ void loop()
   {
     Serial.println("Authorized access");
     Serial.println();
-    delay(3000);
+//    delay(3000);
   }
  
  else   {
     Serial.println(" Access denied");
-    delay(3000);
+//    delay(3000);
   }
 } 
