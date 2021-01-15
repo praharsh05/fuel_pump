@@ -10,7 +10,7 @@
 #undef __FlashStringHelper::F(string_literal)
 #define F(string_literal) string_literal
 #endif
-
+#define DEBUG TRUE
 
 #define YP A3  // must be an analog pin, use "An" notation!
 #define XM A2  // must be an analog pin, use "An" notation!
@@ -39,26 +39,28 @@ boolean buttonEnabled = true;
 
 Elegoo_TFTLCD tft(LCD_CS, LCD_CD, LCD_WR, LCD_RD, LCD_RESET); //Pines arduino to lcd
 
-     //-------Pins-----//
+//-------Pins-----//
 int Relay = 35;                 //Solenoid valve open/close
 int start_stop = 24;             //Start/Stop button
-const int sensor_pulse = 32;    // Sensor Pulse In
+const int sensor_pulse = 21;    // Sensor Pulse In
 int rst_cnt = 28;               // Reset counter button
 //---------Storage debounce function-----//
-boolean currentstart_stop = LOW;          
-boolean laststart_stop =LOW;            
+boolean currentstart_stop = LOW;
+boolean laststart_stop = LOW;
 boolean lastsensor_pulse = LOW;
 boolean currentsensor_pulse = LOW;
 boolean lastrst_cnt = LOW;
 boolean currentrst_cnt = LOW;
-boolean RelayState = LOW;              
-            
-int counter = 0;   
+boolean RelayState = LOW;
+
+int counter = 0;
 
 void setup() {
+  Serial.begin(9600);
   pinMode(Relay, OUTPUT);
+  pinMode(sensor_pulse, INPUT);
   tft.reset();
-
+  lastsensor_pulse = digitalRead(sensor_pulse);
   uint16_t identifier = tft.readID();
   if (identifier == 0x9325) {
     Serial.println(F("Found ILI9325 LCD driver"));
@@ -107,70 +109,73 @@ void setup() {
   tft.setTextSize(4);
   tft.print("PULSES");
 
-//  lcd.begin(16, 2);
-//  lcd.setCursor(5, 0);
-//  lcd.print("COUNTER");
-//  lcd.setCursor(0, 1);
-//  lcd.print("PULSES");
+  //  lcd.begin(16, 2);
+  //  lcd.setCursor(5, 0);
+  //  lcd.print("COUNTER");
+  //  lcd.setCursor(0, 1);
+  //  lcd.print("PULSES");
 
 }
-   //----Debouncing function----//
+//----Debouncing function----//
 boolean debounce(boolean last, int pin)
 {
-boolean current = digitalRead(pin);
-if (last != current)
-{
-delay(5);
-current = digitalRead(pin);
-}
-return current;
+  boolean current = digitalRead(pin);
+  if (last != current)
+  {
+    delay(5);
+    current = digitalRead(pin);
+  }
+  return current;
 }
 
-void loop() {  
-currentstart_stop = debounce(laststart_stop, start_stop);         //Debounce for Start/Stop Button
-currentsensor_pulse = debounce(lastsensor_pulse, sensor_pulse);   //Debounce for Sensor pulse Button
-currentrst_cnt = debounce(lastrst_cnt, rst_cnt);                 //Debounce for reset counter Button
+void loop() {
+  currentstart_stop = debounce(laststart_stop, start_stop);         //Debounce for Start/Stop Button
+  //currentsensor_pulse = debounce(lastsensor_pulse, sensor_pulse);   //Debounce for Sensor pulse Button
+  currentrst_cnt = debounce(lastrst_cnt, rst_cnt);                 //Debounce for reset counter Button
 
   //-----Start/Stop toggle function----//
-  if (currentstart_stop == HIGH && laststart_stop == LOW){
-    
-    if (RelayState == HIGH){         //Toggle the state of the Relay
+  if (currentstart_stop == HIGH && laststart_stop == LOW) {
+
+    if (RelayState == HIGH) {        //Toggle the state of the Relay
       digitalWrite(Relay, LOW);
       RelayState = LOW;
-    
+      Serial.println("solenoid valve off");
 
-} 
-    else{
+    }
+    else {
       digitalWrite(Relay, HIGH);
       RelayState = HIGH;
+      Serial.println("sol valve open");
     }
   }
-  
+
   laststart_stop = currentstart_stop;
-  
-  if (lastsensor_pulse== LOW && currentsensor_pulse == HIGH){
-      counter=counter+ 1;
+  currentsensor_pulse = digitalRead(sensor_pulse);
+  if (lastsensor_pulse == LOW && currentsensor_pulse == HIGH) {
+    counter = counter + 1;
+    Serial.print("counter: ");
+    Serial.println(counter);
   }
-      lastsensor_pulse = currentsensor_pulse;
+  lastsensor_pulse = currentsensor_pulse;
 
 
-tft.setCursor(25, 210);
+  tft.setCursor(25, 210);
   tft.setTextColor(0x07E0, 0x0000);
   tft.setTextSize(4);
-  tft.print(counter);  
-//lcd.setCursor(7, 1);
-//lcd.print(counter);
+  tft.print(counter);
+  //lcd.setCursor(7, 1);
+  //lcd.print(counter);
 
-if(RelayState == LOW){ //Reset counter while sistem is not running
- if (currentrst_cnt == HIGH && lastrst_cnt == LOW){//Reset Counter
-  tft.setCursor(20, 210);
-  tft.print("        ");
-//    lcd.setCursor(6, 1);         // Clear CNT area
-//    lcd.print("          ");
-    counter= 0;         
-   
+  if (RelayState == LOW) { //Reset counter while sistem is not running
+    if (currentrst_cnt == HIGH && lastrst_cnt == LOW) { //Reset Counter
+      tft.setCursor(20, 210);
+      tft.print("        ");
+      //    lcd.setCursor(6, 1);         // Clear CNT area
+      //    lcd.print("          ");
+      counter = 0;
+
+    }
+    lastrst_cnt = currentrst_cnt;
   }
-  lastrst_cnt = currentrst_cnt; 
-}
- 
+
 }// end void loop
