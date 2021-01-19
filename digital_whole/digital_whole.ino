@@ -1,3 +1,4 @@
+#include <EEPROM.h>
 #include <Elegoo_GFX.h>    // Core graphics library
 #include <Elegoo_TFTLCD.h> // Hardware-specific library
 //#include <TouchScreen.h>
@@ -97,10 +98,19 @@ int TotalCount_1 = 0;
 int TotalCount_2 = 0;
 int set_point_1 = 0;
 int set_point_2 = 0;
-
-void stop_relay();
+String quo;
+int rem_quo;
+String veh_no;
+String qty;
+String veh;
+String mrn;
+int quo_int;
 
 String card = "C9 BD A0 C1";
+int addr_veh = 0;
+int addr_qty = 500;
+int addr_mrn = 1000;
+
 void setup(void) { //body
 
   tft.reset();
@@ -168,14 +178,14 @@ void setup(void) { //body
   tft.setCursor(20, 140);
   tft.setTextColor(WHITE);
   tft.setTextSize(4);
-  tft.print("QUO");
+  tft.print("       ");
 
   tft.fillRect(10, 190, 220, 50, BLUE);
   tft.drawRect(10, 190, 220, 50, WHITE);
   tft.setCursor(15, 200);
   tft.setTextColor(WHITE);
   tft.setTextSize(4);
-  tft.print("REM QUO");
+  tft.print("       ");
 
   tft.fillRect(10, 250, 220, 50, RED);
   tft.drawRect(10, 250, 220, 50, WHITE);
@@ -187,21 +197,43 @@ void setup(void) { //body
   Serial.begin(9600);   // Initiate a serial communication
   SPI.begin();      // Initiate  SPI bus
   mfrc522.PCD_Init();   // Initiate MFRC522
-}
-//----Debouncing function for all buttons----//
-boolean debounce(boolean last, int pin)
-{
-  boolean current = digitalRead(pin);
-  if (last != current)
-  {
-    delay(10);
-    current = digitalRead(pin);
-  }
-  return current;
+  
+  //  while (Serial.available()) // this will be skipped if no data present, leading to
+  //    // the code sitting in the delay function below
+  //  {
+
 }
 
+
+
 void loop() {
-  Serial.println("new loop\n");
+
+  if (RelayState == LOW) {   // You only can change settings while system is not running!
+
+    //-----Adders Buttons (set point_1)---//
+
+    if (currentadd_ten == HIGH && lastadd_ten == LOW) { // Add +10
+      set_point_1 = set_point_1 + 10;
+    }
+    lastadd_ten = currentadd_ten;
+
+    if (currentadd_cien == HIGH && lastadd_cien == LOW) { // Add +100
+      set_point_1 = set_point_1 + 100;
+    }
+    lastadd_cien = currentadd_cien;
+
+    if (currentadd_mil == HIGH && lastadd_mil == LOW) { // Add +1000
+      set_point_1 = set_point_1 + 1000;
+    }
+    lastadd_mil = currentadd_mil;
+
+
+    tft.setCursor(15, 20);
+    tft.setTextColor(0xFFFF, 0xF800);
+    tft.setTextSize(4);
+    tft.println(set_point_1);//Show set point
+  }
+  //    Serial.println("new loop\n");
   while (flag_count < 2) {
     if (flag_count == 0) {
       card_present_1 = check_card(card);
@@ -215,8 +247,43 @@ void loop() {
   flag_count = 0;
 
   boolean card_pre = look_for_card(card_present_1, card_present_2);
-  Serial.println(card_pre);
+  //    Serial.println(card_pre);
   //return;
+
+  //  if (Serial.available()) // this will be skipped if no data present, leading to
+  //    // the code sitting in the delay function below
+  //  {
+  //    delay(30);  //delay to allow buffer to fill
+  //
+  //
+  //    //      String c = Serial.read();  //gets one byte from serial buffer
+  //    String c = Serial.readString(); //makes the string readString
+  //    Serial.println("data: " + c);
+  //    //    int ind1 = Serial.readString().indexOf(' ');  //finds location of first ,
+  //    //    veh = Serial.readString().substring(0, ind1);   //captures first data String
+  //    //    int ind2 = Serial.readString().indexOf(' ', ind1 + 1 );
+  //    //    qty = Serial.readString().substring(' ', ind1 + 1); //captures second data String
+  //    //    int ind3 = Serial.readString().indexOf('\n', ind2 + 1 );
+  //    //    mrn = Serial.readString().substring(ind2 + 1, ind3); //captures third data String
+  //
+  //
+  //    EEPROM.write(addr_veh, veh.toInt());
+  //    EEPROM.write(addr_qty, qty.toInt());
+  //
+  //  }
+  delay(30);  //delay to allow buffer to fill
+  if (Serial.available() > 0)
+  {
+    String c = Serial.readString(); //makes the string readString
+    Serial.println("data: " + c);
+    writeString(addr_veh, c);
+    qty = Serial.readString();
+    Serial.println("qty: " + qty);
+    writeString(addr_qty, qty);
+
+  }
+
+  //  }
   //-----Debounce Buttons-----//
   currentstart_stop = debounce(laststart_stop, start_stop);    //Debounce for Start/Stop Button
   //  currentsensor_pulse = debounce(lastsensor_pulse, sensor_pulse); //Debounce for Sensor
@@ -335,22 +402,22 @@ void loop() {
 
     if (RelayState == LOW) {   // You only can change settings while system is not running!
 
-      //-----Adders Buttons (set point_1)---//
-
-      if (currentadd_ten == HIGH && lastadd_ten == LOW) { // Add +10
-        set_point_1 = set_point_1 + 10;
-      }
-      lastadd_ten = currentadd_ten;
-
-      if (currentadd_cien == HIGH && lastadd_cien == LOW) { // Add +100
-        set_point_1 = set_point_1 + 100;
-      }
-      lastadd_cien = currentadd_cien;
-
-      if (currentadd_mil == HIGH && lastadd_mil == LOW) { // Add +1000
-        set_point_1 = set_point_1 + 1000;
-      }
-      lastadd_mil = currentadd_mil;
+      //      //-----Adders Buttons (set point_1)---//
+      //
+      //      if (currentadd_ten == HIGH && lastadd_ten == LOW) { // Add +10
+      //        set_point_1 = set_point_1 + 10;
+      //      }
+      //      lastadd_ten = currentadd_ten;
+      //
+      //      if (currentadd_cien == HIGH && lastadd_cien == LOW) { // Add +100
+      //        set_point_1 = set_point_1 + 100;
+      //      }
+      //      lastadd_cien = currentadd_cien;
+      //
+      //      if (currentadd_mil == HIGH && lastadd_mil == LOW) { // Add +1000
+      //        set_point_1 = set_point_1 + 1000;
+      //      }
+      //      lastadd_mil = currentadd_mil;
 
       //-------Reset Buttons----//
       if (currentrst_sp == HIGH && lastrst_sp == LOW) { //Reset Set Point
@@ -379,10 +446,11 @@ void loop() {
     }//-----End Settings-----//
 
 
-    tft.setCursor(15, 20);
-    tft.setTextColor(0xFFFF, 0xF800);
-    tft.setTextSize(4);
-    tft.println(set_point_1);//Show set point
+    //    tft.setCursor(15, 20);
+    //    tft.setTextColor(0xFFFF, 0xF800);
+    //    tft.setTextSize(4);
+    //    tft.println(set_point_1);//Show set point
+    //    Serial.print(String(set_point_1) + " " );
     //RelayState=LOW;
     // Look for new cards
 
@@ -395,59 +463,74 @@ void loop() {
       tft.drawRect(10, 250, 220, 50, WHITE);
       tft.setCursor(30, 265);
       tft.setTextColor(WHITE);
-      tft.setTextSize(3);
-      tft.print("RJ14AA0000");
-      //      delay(3000);
-      //      if (currentstart_stop == HIGH && laststart_stop == LOW) {
-      //
-      //        if (RelayState == LOW) {        //Toggle the state of the Relay
-      //          digitalWrite(Relay, HIGH);
-      //          RelayState = HIGH;
-      //        }
-      //        else {
-      //          digitalWrite(Relay, LOW);
-      //          RelayState = LOW;
-      //        }
-      //      }
-      //      laststart_stop = currentstart_stop;
-
-      //RelayState=HIGH;
+      tft.setTextSize(2);
+      veh_no =  read_String(addr_veh);
+      tft.print(veh_no);
+      //        Serial.print(String(veh_no) + " ");
+      tft.fillRect(10, 130, 220, 50, MAGENTA);
+      tft.drawRect(10, 130, 220, 50, WHITE);
+      tft.setCursor(20, 140);
+      tft.setTextColor(WHITE);
+      tft.setTextSize(4);
+      quo = read_String(addr_qty);
+      tft.print(quo);
+      quo_int = quo.toInt();
       //----Start Counter------//
       if (RelayState == HIGH) {  // Only counts while relay is HIGH
-        Serial.println("relay on");
+        //          Serial.println("relay on");
         if (!fuel_start) {
           currentTime = millis();
           fuel_start = true;
         }
-        //                if (lastsensor_pulse == 0 && currentsensor_pulse == 1) {
-        //                  counter_1 = counter_1 + 1;
 
-
-
-
-        //        lastsensor_pulse = currentsensor_pulse;
         time_lapse = millis() - currentTime;
-        //-------Counter function-----//
-        //        if (time_lapse % 250)) {
-        //          TotalCount_1 = TotalCount_1 + 10;
-        //          time_lapse = 0;                   //Counter  reset
-        //        }
-        Serial.println(time_lapse);
-        Serial.println(int(time_lapse / 250));
+
+        //          Serial.println(time_lapse);
+        //          Serial.println(int(time_lapse / 250));
 
         TotalCount_1 = int(time_lapse / 250) * 10;
-        Serial.println(TotalCount_1);
+        //          Serial.println(TotalCount_1);
         tft.setCursor(20, 80);
         tft.setTextColor(0xFFFF, 0x07E0);
         tft.setTextSize(4);
         tft.println(TotalCount_1);// Show counter
 
+
+
         //--Stop Counter.You can't start if set point is lower or equal to counter--//
         if (RelayState == HIGH) {
-          Serial.println("total " + String(TotalCount_1) + " set point " + String(set_point_1));
+          //            Serial.println("total " + String(TotalCount_1) + " set point " + String(set_point_1));
+          if (quo_int < set_point_1) {
+            RelayState = LOW;
+            digitalWrite(Relay, LOW);
+            tft.setCursor(15, 20);
+            tft.setTextColor(0xFFFF, 0xF800);
+            tft.setTextSize(4);
+            tft.println("       ");// Clear SP area
+            tft.setCursor(20, 80);
+            tft.setTextColor(0xFFFF, 0x07E0);
+            tft.setTextSize(4);
+            tft.println("       ");// Clear CNT area
+            tft.fillRect(10, 250, 220, 50, RED);
+            tft.drawRect(10, 250, 220, 50, WHITE);
+            tft.setCursor(30, 265);
+            tft.setTextColor(WHITE);
+            tft.setTextSize(3);
+            tft.print("AUTHENTIC");
+
+            TotalCount_1 = 0;
+            set_point_1 = 0;
+            fuel_start = false;
+          }
           if (set_point_1 <= TotalCount_1) {
             RelayState = LOW;
             digitalWrite(Relay, LOW);
+            tft.fillRect(10, 190, 220, 50, BLUE);
+            tft.drawRect(10, 190, 220, 50, WHITE);
+            tft.setCursor(15, 200);
+            tft.setTextColor(WHITE);
+            tft.setTextSize(4);
+            tft.print(quo_int - TotalCount_1);
             //***********************************************Autoreset
             tft.setCursor(20, 80);
             tft.setTextColor(0xFFFF, 0x07E0);
@@ -562,7 +645,7 @@ void loop() {
       return;
     }
     //Show UID on serial monitor
-    Serial.print("UID tag :");
+    //    Serial.print("UID tag :");
     String content = "";
     byte letter;
     for (byte i = 0; i < mfrc522.uid.size; i++)
@@ -674,7 +757,47 @@ void loop() {
   Serial.println(digitalRead(Relay));
 }//End Void Loop
 
+void writeString(int add, String data)
+{
+  int _size = data.length();
+  int i;
+  for (i = 0; i < _size; i++)
+  {
+    EEPROM.write(add + i, data[i]);
+  }
+  EEPROM.write(add + _size, '\0'); //Add termination null character for String Data
+  return ;
+}
 
+
+String read_String(int add)
+{
+  int i;
+  char data[100]; //Max 100 Bytes
+  int len = 0;
+  unsigned char k;
+  k = EEPROM.read(add);
+  while (k != '\0' && len < 500) //Read until null character
+  {
+    k = EEPROM.read(add + len);
+    data[len] = k;
+    len++;
+  }
+  data[len] = '\0';
+  return String(data);
+}
+
+//----Debouncing function for all buttons----//
+boolean debounce(boolean last, int pin)
+{
+  boolean current = digitalRead(pin);
+  if (last != current)
+  {
+    delay(10);
+    current = digitalRead(pin);
+  }
+  return current;
+}
 void stop_relay() {
   Serial.println("no card");
   tft.fillRect(10, 250, 220, 50, RED);
@@ -699,16 +822,14 @@ void stop_relay() {
 boolean look_for_card(boolean status_1, boolean status_2) {
   return status_1 || status_2;
 }
+
 boolean check_card(String card) {
   if ( ! mfrc522.PICC_IsNewCardPresent())
   {
-    //      Serial.println("LOOK for new card");
     return false;
   }
-  // Select one of the cards
   if ( ! mfrc522.PICC_ReadCardSerial())
   {
-    //      Serial.println("read card");
     return false;
   }
   String content = "";
