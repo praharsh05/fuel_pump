@@ -1,2 +1,2 @@
-com_port = '/dev/cu.usbmodem1442401'
+com_port = '/dev/cu.usbserial-0001'
 baud_rate = 9600
