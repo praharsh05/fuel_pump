@@ -9,12 +9,8 @@ void lcdInit()
   tft.fillRect(10, 190, 220, 50, BLUE);
   tft.drawRect(10, 190, 220, 50, WHITE);
 
-
-
   tft.fillRect(10, 130, 220, 50, MAGENTA);
   tft.drawRect(10, 130, 220, 50, WHITE);
-
-  
 }
 
 void lcdsetup()
@@ -25,10 +21,6 @@ void lcdsetup()
   setRemainingQuantity(0);
   setAuth("AUTHENTIC");
 }
-
-
-
-
 
 void setPointValue(float value)
 {
@@ -44,10 +36,8 @@ void setPointValue(float value)
   }
 }
 
-
 void setCounter(float value)
 {
-
   if(previous_counter != value)
   {
     previous_counter = value;
@@ -59,8 +49,6 @@ void setCounter(float value)
     tft.print("FILLED " + String(value));
   }
 }
-
-
 
 void setMrnQuantity(float value){
   if(previous_mrn != value)
@@ -75,8 +63,6 @@ void setMrnQuantity(float value){
    tft.print("MRN QTY " + String(value));
   }
 }
-
-
 
 void setRemainingQuantity(float value){
   if(previousRQ  != value)
@@ -93,11 +79,8 @@ void setRemainingQuantity(float value){
   }
 }
 
-
-
 void setAuth(String value)
 {
-
   if(previousAuth != value)
   {
     previousAuth = value;
